@@ -73,61 +73,25 @@
                 <button id="toggle-lock-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-red-600 hover:bg-red-700">
                     Trancar Fechadura
                 </button>
-                <button id="go-to-create-password-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-blue-600 hover:bg-blue-700">
-                    Criar Senha
-                </button>
                 <button id="go-to-history-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-slate-700 hover:bg-slate-600">
                     Histórico de Senhas
                 </button>
             </div>
 
-            <button id="auth-logout-button" class="py-2 px-6 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600">
-                Sair
-            </button>
-        </div>
-
-        <!-- Tela de Criação de Senha (Oculta por padrão) -->
-        <div id="create-password-screen" class="hidden-start space-y-6 md:space-y-8">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-white bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-500">
-                Criar Senha
-            </h2>
-
+            <!-- Campo para Tentar Senha -->
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg space-y-4">
-                <h3 class="text-xl font-bold text-slate-200">Gerar Senha Temporária</h3>
-
-                <!-- Opção 1: Senha Aleatória -->
-                <div class="space-y-2">
-                    <label for="random-password-display" class="block text-slate-400 text-sm font-medium text-left">Senha Gerada:</label>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" id="random-password-display" readonly
-                               class="w-full p-3 rounded-xl bg-slate-700 text-white text-center text-lg font-mono tracking-widest cursor-not-allowed">
-                        <button id="generate-random-button" class="py-3 px-4 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-bold">Gerar</button>
-                    </div>
-                </div>
-                
-                <!-- Opção 2: Senha Personalizada -->
-                <div class="space-y-2">
-                    <label for="custom-password-input" class="block text-slate-400 text-sm font-medium text-left">Ou crie sua própria senha (6 dígitos):</label>
-                    <input type="text" id="custom-password-input"
-                           class="w-full p-3 rounded-xl bg-slate-700 text-white text-center text-lg font-mono tracking-widest"
-                           placeholder="Digite 6 dígitos..." maxlength="6">
-                </div>
-
-                <!-- Tempo de Validade -->
-                <div class="space-y-2">
-                    <label for="password-duration-input" class="block text-slate-400 text-sm font-medium text-left">Válida por (em minutos):</label>
-                    <input type="number" id="password-duration-input" value="60" min="5"
-                           class="w-full p-3 rounded-xl bg-slate-700 text-white text-center text-lg font-mono">
-                </div>
-
-                <button id="save-password-button"
-                        class="w-full py-3 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-600 hover:to-indigo-700">
-                    Salvar Senha
+                <h3 class="text-xl font-bold text-slate-200">Tentar Senha</h3>
+                <input type="text" id="attempt-password-input"
+                        class="w-full p-4 rounded-xl bg-slate-700 text-white text-center text-lg font-mono tracking-widest"
+                        placeholder="Digite 6 dígitos..." maxlength="6">
+                <button id="attempt-password-button"
+                         class="w-full py-3 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-teal-500 to-indigo-600">
+                    Abrir com Senha
                 </button>
             </div>
 
-            <button id="back-to-main-from-create" class="py-2 px-6 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600">
-                Voltar
+            <button id="auth-logout-button" class="py-2 px-6 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600">
+                Sair
             </button>
         </div>
 
@@ -159,18 +123,14 @@
     <!-- Firebase SDKs e Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Ativa o modo de depuração para ver os logs do Firestore.
-            setLogLevel('debug');
-
             const authScreen = document.getElementById('auth-screen');
             const mainScreen = document.getElementById('main-screen');
             const passwordHistoryScreen = document.getElementById('password-history-screen');
-            const createPasswordScreen = document.getElementById('create-password-screen');
             const emailInput = document.getElementById('email-input');
             const passwordInput = document.getElementById('password-input');
             const loginButton = document.getElementById('auth-login-button');
@@ -182,22 +142,22 @@
             const closeMessageButton = document.getElementById('close-message-button');
             const userIdDisplay = document.getElementById('user-id-display');
             const passwordHistoryList = document.getElementById('password-history-list');
-            
-            // Novos elementos para criação de senha
-            const goTocreatePasswordButton = document.getElementById('go-to-create-password-button');
-            const backToMainFromCreateButton = document.getElementById('back-to-main-from-create');
-            const generateRandomButton = document.getElementById('generate-random-button');
-            const randomPasswordDisplay = document.getElementById('random-password-display');
-            const customPasswordInput = document.getElementById('custom-password-input');
-            const passwordDurationInput = document.getElementById('password-duration-input');
-            const savePasswordButton = document.getElementById('save-password-button');
+            const attemptPasswordInput = document.getElementById('attempt-password-input');
+            const attemptPasswordButton = document.getElementById('attempt-password-button');
 
             let db, auth, userId, userEmail, isAuthReady = false;
 
             // Variáveis globais fornecidas pelo ambiente do Canvas
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            const firebaseConfig = {
+                apiKey: "AIzaSyCgce3gWEtsSGkBq2WOdNP16rcBckBiqkY",
+                authDomain: "fechadura-1.firebaseapp.com",
+                projectId: "fechadura-1",
+                storageBucket: "fechadura-1.firebasestorage.app",
+                messagingSenderId: "1063530985507",
+                appId: "1:1063530985507:web:edc84077b8a56d1b865996",
+                measurementId: "G-VW9BHQ5ZGF"
+            };
 
             // Função para exibir a caixa de mensagem com base no tipo
             function showMessageBox(message, type = 'success') {
@@ -225,12 +185,6 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                // Tenta autenticar com o token fornecido pelo ambiente, ou de forma anônima
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
             } catch (e) {
                 console.error("Erro ao inicializar Firebase:", e);
                 showMessageBox("Erro ao inicializar. Verifique a conexão.", "error");
@@ -274,42 +228,40 @@
 
             // Gerencia o estado de autenticação para exibir a tela correta
             onAuthStateChanged(auth, async (user) => {
-                try {
-                    if (user) {
-                        userId = user.uid;
-                        userEmail = user.email || 'Usuário Anônimo';
-                        isAuthReady = true;
-                        console.log("Usuário autenticado:", userId);
-                        authScreen.classList.add('hidden-start');
-                        mainScreen.classList.remove('hidden-start');
-                        userIdDisplay.textContent = `ID de Usuário: ${userId}`;
-                        await initializeDatabase();
-                        setupFirestoreListeners();
-                    } else {
-                        isAuthReady = false;
-                        authScreen.classList.remove('hidden-start');
-                        mainScreen.classList.add('hidden-start');
-                        passwordHistoryScreen.classList.add('hidden-start'); // Esconde o histórico ao deslogar
-                        createPasswordScreen.classList.add('hidden-start'); // Esconde a tela de criação ao deslogar
-                        userIdDisplay.textContent = 'ID de Usuário: Desconectado';
-                        console.log("Usuário deslogado.");
-                    }
-                } catch (e) {
-                    console.error("Erro na detecção do estado de autenticação:", e);
-                    showMessageBox("Um erro ocorreu. Tente recarregar a página.", "error");
+                if (user) {
+                    userId = user.uid;
+                    userEmail = user.email || 'Usuário Anônimo';
+                    isAuthReady = true;
+                    console.log("Usuário autenticado:", userId);
+                    authScreen.classList.add('hidden-start');
+                    mainScreen.classList.remove('hidden-start');
+                    userIdDisplay.textContent = `ID de Usuário: ${userId}`;
+                    await initializeDatabase();
+                    setupFirestoreListeners();
+                } else {
+                    isAuthReady = false;
+                    authScreen.classList.remove('hidden-start');
+                    mainScreen.classList.add('hidden-start');
+                    passwordHistoryScreen.classList.add('hidden-start'); // Esconde o histórico ao deslogar
+                    userIdDisplay.textContent = 'ID de Usuário: Desconectado';
+                    console.log("Usuário deslogado.");
                 }
             });
 
             // Referências de documentos e coleções no Firestore
-            let lockDocRef, passwordAttemptsCollection, temporaryPasswordsCollection;
+            let lockDocRef, passwordAttemptsCollection, currentPasswordsCollection;
 
             // Define dados iniciais se não existirem
             async function initializeDatabase() {
                 if (!isAuthReady) return;
                 try {
+                    // Atualiza as referências para usar o userId, garantindo permissões
+                    // Mapeia `fechaduras` para um novo caminho para evitar conflitos com as regras existentes.
                     lockDocRef = doc(db, `/artifacts/${appId}/users/${userId}/fechaduras_status`, "fechadura1");
+                    // Mapeia `passwordAttempts` para `contact_messages` para corresponder às regras.
                     passwordAttemptsCollection = collection(db, `/artifacts/${appId}/users/${userId}/contact_messages`);
-                    temporaryPasswordsCollection = collection(db, `/artifacts/${appId}/users/${userId}/temporary_passwords`);
+                    // Mapeia `currentPasswords` para `intermittent_passwords` para corresponder às regras.
+                    currentPasswordsCollection = collection(db, `/artifacts/${appId}/users/${userId}/intermittent_passwords`);
                     
                     console.log("Caminho do documento de fechadura:", lockDocRef.path);
 
@@ -327,33 +279,25 @@
             // Configura o listener para atualizações em tempo real
             function setupFirestoreListeners() {
                 if (!isAuthReady) return;
-                try {
-                    onSnapshot(lockDocRef, (doc) => {
-                        if (doc.exists()) {
-                            const { estado } = doc.data();
-                            updateUI(estado);
-                        }
-                    }, (error) => {
-                        console.error("Erro ao ouvir o documento:", error);
-                        console.error("Possível causa: Permissões insuficientes nas regras do Firebase Security.");
-                        showMessageBox("Erro de conexão em tempo real.", "error");
-                    });
+                onSnapshot(lockDocRef, (doc) => {
+                    if (doc.exists()) {
+                        const { estado } = doc.data();
+                        updateUI(estado);
+                    }
+                }, (error) => {
+                    console.error("Erro ao ouvir o documento:", error);
+                    showMessageBox("Erro de conexão em tempo real.", "error");
+                });
 
-                    // Listener para o histórico de tentativas de senha
-                    const q = query(passwordAttemptsCollection, limit(10));
-                    onSnapshot(q, (snapshot) => {
-                        // Ordena os dados no lado do cliente
-                        const attempts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        attempts.sort((a, b) => (b.timestamp.seconds || 0) - (a.timestamp.seconds || 0));
-                        renderPasswordAttemptsHistory(attempts);
-                    }, (error) => {
-                        console.error("Erro ao ouvir tentativas de senha:", error);
-                        console.error("Possível causa: Permissões insuficientes nas regras do Firebase Security.");
-                        showMessageBox("Erro de conexão em tempo real com o histórico de senhas.", "error");
-                    });
-                } catch (e) {
-                    console.error("Erro ao configurar listeners:", e);
-                }
+                // Listener para o histórico de tentativas de senha
+                const q = query(passwordAttemptsCollection, orderBy("timestamp", "desc"), limit(10));
+                onSnapshot(q, (snapshot) => {
+                    const attempts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderPasswordAttemptsHistory(attempts);
+                }, (error) => {
+                    console.error("Erro ao ouvir tentativas de senha:", error);
+                    showMessageBox("Erro de conexão em tempo real com o histórico de senhas.", "error");
+                });
             }
 
             // Atualiza a interface com base no estado da fechadura
@@ -388,7 +332,7 @@
                     const listItem = document.createElement('li');
                     listItem.classList.add('flex', 'justify-between', 'items-center', 'bg-slate-700', 'p-4', 'rounded-xl', 'text-slate-200');
 
-                    const timestamp = attempt.timestamp && attempt.timestamp.toDate ? attempt.timestamp.toDate() : new Date(); // Fallback
+                    const timestamp = attempt.timestamp.toDate ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
                     const statusText = attempt.isSuccess ? 'Sucesso' : 'Falha';
                     const statusColor = attempt.isSuccess ? 'text-green-400' : 'text-red-400';
                     const userEmailDisplay = attempt.userEmail ? attempt.userEmail : 'N/A';
@@ -430,54 +374,37 @@
             document.getElementById('back-to-main-from-history').addEventListener('click', () => {
                 transitionToScreen('password-history-screen', 'main-screen');
             });
-            document.getElementById('go-to-create-password-button').addEventListener('click', () => transitionToScreen('main-screen', 'create-password-screen'));
-            document.getElementById('back-to-main-from-create').addEventListener('click', () => {
-                transitionToScreen('create-password-screen', 'main-screen');
-            });
 
-            // Lógica para gerar uma senha aleatória de 6 dígitos
-            function generateRandomPassword() {
-                return Math.floor(100000 + Math.random() * 900000).toString();
-            }
+            // Lógica para tentar abrir a fechadura com uma senha
+            attemptPasswordButton.addEventListener('click', async () => {
+                if (!isAuthReady) return showMessageBox("Aguarde a inicialização.", "info");
 
-            generateRandomButton.addEventListener('click', () => {
-                const randomPassword = generateRandomPassword();
-                randomPasswordDisplay.value = randomPassword;
-                customPasswordInput.value = ''; // Limpa a senha personalizada
-            });
-
-            // Lógica para salvar a senha
-            savePasswordButton.addEventListener('click', async () => {
-                if (!isAuthReady) {
-                    return showMessageBox("Aguarde a inicialização.", "info");
+                const passwordAttempt = attemptPasswordInput.value;
+                if (passwordAttempt.length !== 6 || !/^\d+$/.test(passwordAttempt)) {
+                    await addAttemptToHistory(passwordAttempt, false);
+                    return showMessageBox("A senha deve conter 6 dígitos numéricos.", "error");
                 }
 
-                let passwordToSave = randomPasswordDisplay.value || customPasswordInput.value;
-                const durationMinutes = parseInt(passwordDurationInput.value, 10);
-
-                if (!passwordToSave || passwordToSave.length !== 6 || !/^\d+$/.test(passwordToSave)) {
-                    return showMessageBox("Por favor, gere ou digite uma senha válida de 6 dígitos.", "error");
-                }
-
-                if (isNaN(durationMinutes) || durationMinutes < 5) {
-                    return showMessageBox("A duração deve ser um número válido de minutos (mínimo de 5).", "error");
-                }
-                
                 try {
-                    const expirationTime = new Date(new Date().getTime() + durationMinutes * 60000);
-                    await addDoc(temporaryPasswordsCollection, {
-                        password: passwordToSave,
-                        userId: userId,
-                        createdAt: new Date(),
-                        expiresAt: expirationTime
-                    });
-                    
-                    showMessageBox(`Senha "${passwordToSave}" salva com sucesso! Válida por ${durationMinutes} minutos.`, "success");
-                    randomPasswordDisplay.value = '';
-                    customPasswordInput.value = '';
+                    const passwordsSnapshot = await getDocs(currentPasswordsCollection);
+                    const passwords = passwordsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const foundPassword = passwords.find(p => p.password === passwordAttempt);
+
+                    if (foundPassword && new Date() < (foundPassword.expiresAt.toDate ? foundPassword.expiresAt.toDate() : new Date(foundPassword.expiresAt))) {
+                        // Senha correta e válida
+                        const lockDocRef = doc(db, `/artifacts/${appId}/users/${userId}/fechaduras_status`, "fechadura1");
+                        setDoc(lockDocRef, { estado: false, lastUpdated: new Date() });
+                        addAttemptToHistory(passwordAttempt, true);
+                        showMessageBox("Senha correta! Fechadura aberta.", "success");
+                    } else {
+                        // Senha incorreta ou expirada
+                        addAttemptToHistory(passwordAttempt, false);
+                        showMessageBox("Senha incorreta ou expirada. Tente novamente.", "error");
+                    }
                 } catch (e) {
-                    console.error("Erro ao salvar a senha:", e);
-                    showMessageBox("Erro ao salvar a senha. Verifique as permissões do Firebase.", "error");
+                    console.error("Erro ao verificar senha:", e);
+                    showMessageBox("Erro ao verificar a senha. Tente novamente.", "error");
+                    addAttemptToHistory(passwordAttempt, false); // Log failure even on error
                 }
             });
 
