@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fechadura Inteligente</title>
+    <!-- Inclui a biblioteca do Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .hidden-start { display: none; }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-950 p-4">
+
+    <!-- Container Principal -->
+    <div class="bg-slate-900 p-6 md:p-10 rounded-3xl shadow-2xl max-w-xl w-full text-center space-y-6 md:space-y-8">
+        
+        <!-- Tela de Autenticação -->
+        <div id="auth-screen" class="space-y-6 md:space-y-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-500">
+                VØRTEX
+            </h1>
+            <p class="text-slate-400 text-lg">
+                Entre na sua conta para gerenciar a fechadura.
+            </p>
+            <div class="space-y-4">
+                <input type="email" id="email-input" class="w-full p-4 rounded-xl bg-slate-800 text-white placeholder-slate-500" placeholder="E-mail" required>
+                <input type="password" id="password-input" class="w-full p-4 rounded-xl bg-slate-800 text-white placeholder-slate-500" placeholder="Senha" required>
+            </div>
+            <div class="space-y-4">
+                <button id="auth-login-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-600 hover:to-indigo-700">
+                    Entrar
+                </button>
+                <button id="auth-register-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-slate-700 hover:bg-slate-600">
+                    Criar Conta
+                </button>
+            </div>
+        </div>
+
+        <!-- Tela Principal (Oculta por padrão) -->
+        <div id="main-screen" class="hidden-start space-y-6 md:space-y-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-500">
+                VØRTEX
+            </h1>
+            
+            <p id="user-id-display" class="text-sm text-slate-400">ID de Usuário: Carregando...</p>
+
+            <!-- Status da Fechadura -->
+            <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700 shadow-lg space-y-3">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-200">Status da Fechadura</h2>
+                <div class="flex items-center justify-center space-x-4">
+                    <div id="lock-status-indicator" class="w-4 h-4 rounded-full bg-red-500"></div>
+                    <p id="lock-status-text" class="text-3xl md:text-4xl font-extrabold text-white">
+                        <span class="text-red-500">Aberta</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="space-y-4">
+                <button id="toggle-lock-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-red-600 hover:bg-red-700">
+                    Trancar Fechadura
+                </button>
+                <button id="go-to-create-password-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-blue-600 hover:bg-blue-700">
+                    Criar Senha
+                </button>
+                <button id="go-to-history-button" class="w-full py-4 rounded-2xl font-bold text-lg text-white bg-slate-700 hover:bg-slate-600">
+                    Histórico de Senhas
+                </button>
+            </div>
+
+            <button id="auth-logout-button" class="py-2 px-6 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600">
+                Sair
+            </button>
+        </div>
+
+        <!-- Tela de Criação de Senha (Oculta por padrão) -->
+        <div id="create-password-screen" class="hidden-start space-y-6 md:space-y-8">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-white bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-500">
+                Criar Senha
+            </h2>
+
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg space-y-4">
+                <h3 class="text-xl font-bold text-slate-200">Gerar Senha Temporária</h3>
+
+                <!-- Opção 1: Senha Aleatória -->
+                <div class="space-y-2">
+                    <label for="random-password-display" class="block text-slate-400 text-sm font-medium text-left">Senha Gerada:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="random-password-display" readonly
+                               class="w-full p-3 rounded-xl bg-slate-700 text-white text-center text-lg font-mono tracking-widest cursor-not-allowed">
+                        <button id="generate-random-button" class="py-3 px-4 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-bold">Gerar</button>
+                    </div>
+                </div>
+                
+                <!-- Opção 2: Senha Personalizada -->
+                <div class="space-y-2">
+                    <label for="custom-password-input" class="block text-slate-400 text-sm font-medium text-left">Ou crie sua própria senha (6 dígitos):</label>
+                    <input type="text" id="custom-password-input"
+                           class="w-full p-3 rounded-xl bg-slate-700 text-white text-center text-lg font-mono tracking-widest"
+                           placeholder="Digite 6 dígitos..." maxlength="6">
+                </div>
+
+                <!-- Tempo de Validade -->
+                <div class="space-y-2">
+                    <label for="password-duration-input" class="block text-slate-400 text-sm font-medium text-left">Válida por (em minutos):</label>
+                    <input type="number" id="password-duration-input" value="60" min="5"
+                           class="w-full p-3 rounded-xl bg-slate-700 text-white text-center text-lg font-mono">
+                </div>
+
+                <button id="save-password-button"
+                        class="w-full py-3 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-600 hover:to-indigo-700">
+                    Salvar Senha
+                </button>
+            </div>
+
+            <button id="back-to-main-from-create" class="py-2 px-6 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600">
+                Voltar
+            </button>
+        </div>
+
+        <!-- Tela de Histórico de Senhas -->
+        <div id="password-history-screen" class="hidden-start space-y-6 md:space-y-8">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-white bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-500">
+                Histórico de Senhas
+            </h2>
+            
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg space-y-4">
+                <h3 class="text-xl font-bold text-slate-200">Últimas 10 Tentativas</h3>
+                <ul id="password-history-list" class="space-y-3">
+                    <!-- Senhas serão injetadas aqui dinamicamente pelo JS -->
+                </ul>
+            </div>
+
+            <button id="back-to-main-from-history" class="py-2 px-6 rounded-2xl font-bold text-white bg-slate-700 hover:bg-slate-600">
+                Voltar
+            </button>
+        </div>
+    </div>
+
+    <!-- Caixa de Mensagem -->
+    <div id="message-box" class="message-box text-white hidden">
+        <p id="message-text" class="text-lg"></p>
+        <button id="close-message-button" class="mt-4 px-6 py-2 rounded-full font-bold text-white bg-teal-700">OK</button>
+    </div>
+
+    <!-- Firebase SDKs e Lógica -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Ativa o modo de depuração para ver os logs do Firestore.
+            setLogLevel('debug');
+
+            const authScreen = document.getElementById('auth-screen');
+            const mainScreen = document.getElementById('main-screen');
+            const passwordHistoryScreen = document.getElementById('password-history-screen');
+            const createPasswordScreen = document.getElementById('create-password-screen');
+            const emailInput = document.getElementById('email-input');
+            const passwordInput = document.getElementById('password-input');
+            const loginButton = document.getElementById('auth-login-button');
+            const registerButton = document.getElementById('auth-register-button');
+            const lockStatusText = document.getElementById('lock-status-text');
+            const lockStatusIndicator = document.getElementById('lock-status-indicator');
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            const closeMessageButton = document.getElementById('close-message-button');
+            const userIdDisplay = document.getElementById('user-id-display');
+            const passwordHistoryList = document.getElementById('password-history-list');
+            
+            // Novos elementos para criação de senha
+            const goTocreatePasswordButton = document.getElementById('go-to-create-password-button');
+            const backToMainFromCreateButton = document.getElementById('back-to-main-from-create');
+            const generateRandomButton = document.getElementById('generate-random-button');
+            const randomPasswordDisplay = document.getElementById('random-password-display');
+            const customPasswordInput = document.getElementById('custom-password-input');
+            const passwordDurationInput = document.getElementById('password-duration-input');
+            const savePasswordButton = document.getElementById('save-password-button');
+
+            let db, auth, userId, userEmail, isAuthReady = false;
+
+            // Variáveis globais fornecidas pelo ambiente do Canvas
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+            // Função para exibir a caixa de mensagem com base no tipo
+            function showMessageBox(message, type = 'success') {
+                messageBox.classList.remove('hidden', 'bg-red-600', 'bg-green-600', 'bg-yellow-500');
+                if (type === 'success') {
+                    messageBox.classList.add('bg-green-600');
+                    closeMessageButton.classList.remove('bg-red-700', 'bg-yellow-600');
+                    closeMessageButton.classList.add('bg-green-700');
+                } else if (type === 'error') {
+                    messageBox.classList.add('bg-red-600');
+                    closeMessageButton.classList.remove('bg-green-700', 'bg-yellow-600');
+                    closeMessageButton.classList.add('bg-red-700');
+                } else { // info
+                    messageBox.classList.add('bg-yellow-500');
+                    closeMessageButton.classList.remove('bg-green-700', 'bg-red-700');
+                    closeMessageButton.classList.add('bg-yellow-600');
+                }
+                messageText.textContent = message;
+                messageBox.classList.remove('hidden');
+                closeMessageButton.onclick = () => messageBox.classList.add('hidden');
+            }
+
+            // Inicia o Firebase
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                // Tenta autenticar com o token fornecido pelo ambiente, ou de forma anônima
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Erro ao inicializar Firebase:", e);
+                showMessageBox("Erro ao inicializar. Verifique a conexão.", "error");
+                return;
+            }
+
+            // Lógica de Autenticação
+            registerButton.addEventListener('click', async () => {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showMessageBox("Conta criada com sucesso! Você está logado.", "success");
+                } catch (e) {
+                    console.error("Erro ao criar conta:", e);
+                    showMessageBox(`Erro ao criar conta: ${e.message}`, "error");
+                }
+            });
+
+            loginButton.addEventListener('click', async () => {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showMessageBox("Login bem-sucedido!", "success");
+                } catch (e) {
+                    console.error("Erro ao fazer login:", e);
+                    showMessageBox(`Erro ao fazer login: ${e.message}`, "error");
+                }
+            });
+
+            document.getElementById('auth-logout-button').addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                    showMessageBox("Sessão encerrada.", "success");
+                } catch (e) {
+                    console.error("Erro ao sair:", e);
+                    showMessageBox("Erro ao sair.", "error");
+                }
+            });
+
+            // Gerencia o estado de autenticação para exibir a tela correta
+            onAuthStateChanged(auth, async (user) => {
+                try {
+                    if (user) {
+                        userId = user.uid;
+                        userEmail = user.email || 'Usuário Anônimo';
+                        isAuthReady = true;
+                        console.log("Usuário autenticado:", userId);
+                        authScreen.classList.add('hidden-start');
+                        mainScreen.classList.remove('hidden-start');
+                        userIdDisplay.textContent = `ID de Usuário: ${userId}`;
+                        await initializeDatabase();
+                        setupFirestoreListeners();
+                    } else {
+                        isAuthReady = false;
+                        authScreen.classList.remove('hidden-start');
+                        mainScreen.classList.add('hidden-start');
+                        passwordHistoryScreen.classList.add('hidden-start'); // Esconde o histórico ao deslogar
+                        createPasswordScreen.classList.add('hidden-start'); // Esconde a tela de criação ao deslogar
+                        userIdDisplay.textContent = 'ID de Usuário: Desconectado';
+                        console.log("Usuário deslogado.");
+                    }
+                } catch (e) {
+                    console.error("Erro na detecção do estado de autenticação:", e);
+                    showMessageBox("Um erro ocorreu. Tente recarregar a página.", "error");
+                }
+            });
+
+            // Referências de documentos e coleções no Firestore
+            let lockDocRef, passwordAttemptsCollection, temporaryPasswordsCollection;
+
+            // Define dados iniciais se não existirem
+            async function initializeDatabase() {
+                if (!isAuthReady) return;
+                try {
+                    lockDocRef = doc(db, `/artifacts/${appId}/users/${userId}/fechaduras_status`, "fechadura1");
+                    passwordAttemptsCollection = collection(db, `/artifacts/${appId}/users/${userId}/contact_messages`);
+                    temporaryPasswordsCollection = collection(db, `/artifacts/${appId}/users/${userId}/temporary_passwords`);
+                    
+                    console.log("Caminho do documento de fechadura:", lockDocRef.path);
+
+                    const lockSnap = await getDoc(lockDocRef);
+                    if (!lockSnap.exists()) {
+                        console.log("Fechadura não existe. Criando...");
+                        await setDoc(lockDocRef, { estado: false, lastUpdated: new Date() });
+                    }
+                } catch (e) {
+                    console.error("Erro ao inicializar o banco de dados:", e);
+                    showMessageBox("Erro de permissão no banco de dados. Verifique as regras de segurança.", "error");
+                }
+            }
+
+            // Configura o listener para atualizações em tempo real
+            function setupFirestoreListeners() {
+                if (!isAuthReady) return;
+                try {
+                    onSnapshot(lockDocRef, (doc) => {
+                        if (doc.exists()) {
+                            const { estado } = doc.data();
+                            updateUI(estado);
+                        }
+                    }, (error) => {
+                        console.error("Erro ao ouvir o documento:", error);
+                        console.error("Possível causa: Permissões insuficientes nas regras do Firebase Security.");
+                        showMessageBox("Erro de conexão em tempo real.", "error");
+                    });
+
+                    // Listener para o histórico de tentativas de senha
+                    const q = query(passwordAttemptsCollection, limit(10));
+                    onSnapshot(q, (snapshot) => {
+                        // Ordena os dados no lado do cliente
+                        const attempts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        attempts.sort((a, b) => (b.timestamp.seconds || 0) - (a.timestamp.seconds || 0));
+                        renderPasswordAttemptsHistory(attempts);
+                    }, (error) => {
+                        console.error("Erro ao ouvir tentativas de senha:", error);
+                        console.error("Possível causa: Permissões insuficientes nas regras do Firebase Security.");
+                        showMessageBox("Erro de conexão em tempo real com o histórico de senhas.", "error");
+                    });
+                } catch (e) {
+                    console.error("Erro ao configurar listeners:", e);
+                }
+            }
+
+            // Atualiza a interface com base no estado da fechadura
+            function updateUI(isLocked) {
+                const button = document.getElementById('toggle-lock-button');
+                if (isLocked) {
+                    lockStatusText.innerHTML = `<span class="text-green-500">Trancada</span>`;
+                    lockStatusIndicator.classList.remove('bg-red-500');
+                    lockStatusIndicator.classList.add('bg-green-500');
+                    button.classList.remove('bg-red-600');
+                    button.classList.add('bg-green-600');
+                    button.textContent = 'Abrir Fechadura';
+                } else {
+                    lockStatusText.innerHTML = `<span class="text-red-500">Aberta</span>`;
+                    lockStatusIndicator.classList.remove('bg-green-500');
+                    lockStatusIndicator.classList.add('bg-red-500');
+                    button.classList.remove('bg-green-500');
+                    button.classList.add('bg-red-600');
+                    button.textContent = 'Trancar Fechadura';
+                }
+            }
+
+            // Renderiza o histórico de tentativas de senhas
+            function renderPasswordAttemptsHistory(attempts) {
+                passwordHistoryList.innerHTML = '';
+                if (attempts.length === 0) {
+                    passwordHistoryList.innerHTML = '<li class="text-slate-500">Nenhuma tentativa encontrada.</li>';
+                    return;
+                }
+
+                attempts.forEach(attempt => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('flex', 'justify-between', 'items-center', 'bg-slate-700', 'p-4', 'rounded-xl', 'text-slate-200');
+
+                    const timestamp = attempt.timestamp && attempt.timestamp.toDate ? attempt.timestamp.toDate() : new Date(); // Fallback
+                    const statusText = attempt.isSuccess ? 'Sucesso' : 'Falha';
+                    const statusColor = attempt.isSuccess ? 'text-green-400' : 'text-red-400';
+                    const userEmailDisplay = attempt.userEmail ? attempt.userEmail : 'N/A';
+
+                    listItem.innerHTML = `
+                        <div class="text-left flex-1 space-y-1">
+                            <span class="block text-white font-bold text-lg">Senha: ${attempt.password}</span>
+                            <span class="block text-sm text-slate-400">Usuário: ${userEmailDisplay}</span>
+                            <span class="block text-sm text-slate-400">Hora: ${timestamp.toLocaleString('pt-BR')}</span>
+                            <span class="block text-sm font-medium ${statusColor}">Status: ${statusText}</span>
+                        </div>
+                    `;
+                    passwordHistoryList.appendChild(listItem);
+                });
+            }
+
+            // Funções de Evento
+            document.getElementById('toggle-lock-button').addEventListener('click', async () => {
+                if (!isAuthReady) return showMessageBox("Aguarde a inicialização.", "info");
+                try {
+                    const docSnap = await getDoc(lockDocRef);
+                    if (docSnap.exists()) {
+                        const estadoAtual = docSnap.data().estado;
+                        await setDoc(lockDocRef, { estado: !estadoAtual, lastUpdated: new Date() });
+                    }
+                } catch (e) {
+                    console.error("Erro ao alternar fechadura:", e);
+                    showMessageBox("Erro ao conectar com o banco de dados.", "error");
+                }
+            });
+
+            // Lógica de navegação
+            const transitionToScreen = (fromScreenId, toScreenId) => {
+                document.getElementById(fromScreenId).classList.add('hidden-start');
+                document.getElementById(toScreenId).classList.remove('hidden-start');
+            };
+
+            document.getElementById('go-to-history-button').addEventListener('click', () => transitionToScreen('main-screen', 'password-history-screen'));
+            document.getElementById('back-to-main-from-history').addEventListener('click', () => {
+                transitionToScreen('password-history-screen', 'main-screen');
+            });
+            document.getElementById('go-to-create-password-button').addEventListener('click', () => transitionToScreen('main-screen', 'create-password-screen'));
+            document.getElementById('back-to-main-from-create').addEventListener('click', () => {
+                transitionToScreen('create-password-screen', 'main-screen');
+            });
+
+            // Lógica para gerar uma senha aleatória de 6 dígitos
+            function generateRandomPassword() {
+                return Math.floor(100000 + Math.random() * 900000).toString();
+            }
+
+            generateRandomButton.addEventListener('click', () => {
+                const randomPassword = generateRandomPassword();
+                randomPasswordDisplay.value = randomPassword;
+                customPasswordInput.value = ''; // Limpa a senha personalizada
+            });
+
+            // Lógica para salvar a senha
+            savePasswordButton.addEventListener('click', async () => {
+                if (!isAuthReady) {
+                    return showMessageBox("Aguarde a inicialização.", "info");
+                }
+
+                let passwordToSave = randomPasswordDisplay.value || customPasswordInput.value;
+                const durationMinutes = parseInt(passwordDurationInput.value, 10);
+
+                if (!passwordToSave || passwordToSave.length !== 6 || !/^\d+$/.test(passwordToSave)) {
+                    return showMessageBox("Por favor, gere ou digite uma senha válida de 6 dígitos.", "error");
+                }
+
+                if (isNaN(durationMinutes) || durationMinutes < 5) {
+                    return showMessageBox("A duração deve ser um número válido de minutos (mínimo de 5).", "error");
+                }
+                
+                try {
+                    const expirationTime = new Date(new Date().getTime() + durationMinutes * 60000);
+                    await addDoc(temporaryPasswordsCollection, {
+                        password: passwordToSave,
+                        userId: userId,
+                        createdAt: new Date(),
+                        expiresAt: expirationTime
+                    });
+                    
+                    showMessageBox(`Senha "${passwordToSave}" salva com sucesso! Válida por ${durationMinutes} minutos.`, "success");
+                    randomPasswordDisplay.value = '';
+                    customPasswordInput.value = '';
+                } catch (e) {
+                    console.error("Erro ao salvar a senha:", e);
+                    showMessageBox("Erro ao salvar a senha. Verifique as permissões do Firebase.", "error");
+                }
+            });
+
+            // Função para registrar a tentativa de senha
+            async function addAttemptToHistory(password, isSuccess) {
+                if (!isAuthReady) return;
+                try {
+                    await addDoc(passwordAttemptsCollection, {
+                        password: password,
+                        userEmail: userEmail,
+                        isSuccess: isSuccess,
+                        timestamp: new Date()
+                    });
+                } catch (e) {
+                    console.error("Erro ao adicionar tentativa de senha ao histórico:", e);
+                    showMessageBox("Erro ao salvar o histórico de senhas.", "error");
+                }
+            }
+        });
+    </script>
+</body>
+</html>
